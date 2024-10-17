@@ -6,7 +6,10 @@
         xmlns:local="clr-namespace:U2"
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-
-    </Grid>
+    <StackPanel Margin="20">
+        <TextBlock x:Name="MatrixOutput" FontSize="16" Foreground="DarkBlue"/>
+        <TextBlock x:Name="SincOutput" FontSize="16" Margin="0,20,0,0" Foreground="Red"/>
+        <TextBlock x:Name="GradesOutput" FontSize="16" Margin="0,20,0,0" Foreground="Green"/>
+        <TextBlock x:Name="PersonNameOutput" FontSize="16" Margin="0,20,0,0" Foreground="Orange"/>
+    </StackPanel>
 </Window>
