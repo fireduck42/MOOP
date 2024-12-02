@@ -50,7 +50,7 @@ namespace U6
 
             EatingTimes ??= new Dictionary<int, int>();
 
-            foreach (var eatingTime in EatingTimes!)
+            foreach (var eatingTime in EatingTimes)
             {
                 // KEY - philosopherId, VALUE - time in ms
                 Console.WriteLine($"Philosoph {eatingTime.Key}: {eatingTime.Value} ms gegessen.");
