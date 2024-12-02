@@ -1,106 +1,115 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace U6
 {
-    public class Dinner
+    class Program
     {
-        private static Thread[] Philosophers = new Thread[5];
-        private static object[] Cuterlies = new object[5];
-        private Stopwatch StopWatch = new();
+        static Thread[]? Philosophers;
+        static object[]? Forks;
+        static Dictionary<int, int>? EatingTimes;
+        static Stopwatch? Swatch;
 
-        private static Dictionary<int, int> DiningTimes = new Dictionary<int, int>();
-        private const int THINK_TIME = 10;
-        private const int EAT_TIME = 10;
-
-        public Dinner() 
-        {}
-
-        public void startDinner()
+        static void Main(string[] args)
         {
+            Forks = new object[5];
+            EatingTimes = new Dictionary<int, int>();
+            Philosophers = new Thread[5];
+            Swatch = new Stopwatch();
+
             for (int i = 0; i < 5; i++)
-            {
-                Cuterlies[i] = new object();
-            }
+                Forks[i] = new object();
 
             for (int i = 0; i < 5; i++)
             {
-                int philosopher = i;
-                int cut = philosopher == 4 ? 0 : philosopher + 1;
-
-                Philosophers[philosopher] = new Thread(() =>
+                int philosopherId = i;
+                Philosophers[i] = new Thread(() =>
                 {
-                    TryDinner(philosopher, Cuterlies[philosopher], Cuterlies[cut]);
+                    int leftFork = philosopherId;
+                    int rightFork = philosopherId == 4 ? 0 : philosopherId + 1;
+
+                    Swatch ??= new Stopwatch();
+                    while (Swatch.Elapsed.TotalSeconds <= 10)
+                        TryDinner(philosopherId, Forks[leftFork], Forks[rightFork]);
                 });
             }
 
-            if (!StopWatch.IsRunning)
-                StopWatch.Start();
+            Swatch.Start();
+            foreach (var philosopher in Philosophers)
+                philosopher.Start();
+            
+            foreach (var philosopher in Philosophers)
+                philosopher.Join();
 
-            for (int i = 0; i < 5; i++)
-                Philosophers[i].Start();
+            Swatch.Stop();
+
+            Console.Write("-------------------------------------------------------------\n");
+            Console.Write("Beendet mit folgenden Zeiten:\n");
+
+            EatingTimes ??= new Dictionary<int, int>();
+
+            foreach (var eatingTime in EatingTimes!)
+            {
+                // KEY - philosopherId, VALUE - time in ms
+                Console.WriteLine($"Philosoph {eatingTime.Key}: {eatingTime.Value} ms gegessen.");
+            }
+
+            Console.ReadKey();
+            return;
         }
 
-        public void endDinner()
+        static void TryDinner(int philosopherId, object leftFork, object rightFork)
         {
-            if (StopWatch.IsRunning)
-                StopWatch.Stop();
-        }
-
-        public static void Think(object philosoph)
-        {
-            Thread.Sleep(THINK_TIME);
-            DiningTimes.Add((int)philosoph, THINK_TIME);
-            Console.WriteLine("#" + ((int)philosoph).ToString() + ": Thinking...");
-        }
-
-        public static void TryDinner(object philosoph, object cutlery1, object cutlery2)
-        {
-            bool lock1 = false;
-            bool lock2 = false;
+            bool leftForkLock = false;
+            bool rightForkLock = false;
 
             try
             {
-                lock1 = Monitor.TryEnter(cutlery1);
-                lock2 = Monitor.TryEnter(cutlery2);
+                Monitor.TryEnter(leftFork, 10, ref leftForkLock);
+                Monitor.TryEnter(rightFork, 10, ref rightForkLock);
 
-                if (!lock1 && !lock2)
-                {
-                    Console.WriteLine("Fork 1 or 2 is locked");
-                    Think(philosoph);
-                    TryDinner(philosoph, cutlery1, cutlery2);
-                }
+                if (leftForkLock && rightForkLock)
+                    Eat(philosopherId);
                 else
-                {
-                    Eat(philosoph);
-                }
+                    Think(philosopherId);
             }
             finally
             {
-                if (lock1)
-                    Monitor.Exit(cutlery1);
-                if (lock2)
-                    Monitor.Exit(cutlery2);
+                if (leftForkLock)
+                    Monitor.Exit(leftFork);
+
+                if (rightForkLock)
+                    Monitor.Exit(rightFork);
             }
         }
 
-        public static void Eat(object philosoph)
+        static void Eat(int philosopherId)
         {
-            Random rand = new Random(1, EAT_TIME);
-            Thread.Sleep(EAT_TIME);
+            var rand = new Random();
+            int eatTime = rand.Next(1, 11);
+            Thread.Sleep(eatTime);
 
-            if (DiningTimes.ContainsKey((int)philosoph))
+            EatingTimes ??= new Dictionary<int, int>();
+            lock (EatingTimes)
             {
-                DiningTimes[(int)philosoph] += EAT_TIME;
+                if (EatingTimes.ContainsKey(philosopherId))                             // if key exists: add time
+                    EatingTimes[philosopherId] += eatTime;
+                else
+                    EatingTimes[philosopherId] = eatTime;                               // if key is new: set time
             }
-            else 
-                DiningTimes.Add((int)philosoph, EAT_TIME);
 
-            Console.WriteLine("#" + ((int)philosoph).ToString() + ": Eating...");
+            Console.WriteLine($"Philosoph {philosopherId} isst für {eatTime} ms.");
+        }
+
+        static void Think(int philosopherId)
+        {
+            var rand = new Random();
+            int thinkTime = rand.Next(1, 11); 
+            Thread.Sleep(thinkTime);
+
+            Console.WriteLine($"Philosoph {philosopherId} denkt für {thinkTime} ms.");
         }
     }
 }
