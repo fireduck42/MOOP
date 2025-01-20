@@ -4,7 +4,7 @@ namespace VisitorPatternUebung
     public class Program
     {
         public static void Main(string[] args)
-        {
+        {   
             Console.WriteLine("Game of Thrones - Cavalary, Archer and Spearman");
             Console.WriteLine();
 
